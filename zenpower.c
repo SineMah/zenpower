@@ -38,12 +38,19 @@
 MODULE_DESCRIPTION("AMD ZEN family CPU Sensors Driver");
 MODULE_AUTHOR("Ondrej Čerman");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("0.1.12");
+MODULE_VERSION("0.1.14-zen3");
 
 
 #ifndef PCI_DEVICE_ID_AMD_17H_DF_F3
 #define PCI_DEVICE_ID_AMD_17H_DF_F3         0x1463
 #endif
+
+/* ZEN3 */
+#ifndef PCI_DEVICE_ID_AMD_19H_DF_F3
+#define PCI_DEVICE_ID_AMD_19H_DF_F3         0x1653
+#endif
+
+/* F17H_M01H_SVI, should be renamed to something generic I think... */
 
 #ifndef PCI_DEVICE_ID_AMD_17H_M10H_DF_F3
 #define PCI_DEVICE_ID_AMD_17H_M10H_DF_F3    0x15eb
@@ -70,6 +77,9 @@ MODULE_VERSION("0.1.12");
 #define F17H_M70H_SVI_TEL_PLANE0            (F17H_M01H_SVI + 0x10)
 #define F17H_M70H_SVI_TEL_PLANE1            (F17H_M01H_SVI + 0xC)
 #define F17H_M70H_CCD_TEMP(x)               (0x00059954 + ((x) * 4))
+
+#define F19H_M01H_SVI_TEL_PLANE0            (F17H_M01H_SVI + 0x14)
+#define F19H_M01H_SVI_TEL_PLANE1            (F17H_M01H_SVI + 0x10)
 
 #define F17H_TEMP_ADJUST_MASK               0x80000
 
@@ -619,6 +629,16 @@ static int zenpower_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 				data->svi_soc_addr = F17H_M01H_SVI_TEL_PLANE1;
 				break;
 		}
+	}else if (boot_cpu_data.x86 == 0x19) {
+		switch (boot_cpu_data.x86_model) {
+			case 0x21:       /* Zen3 Ryzen */
+				data->zen2 = true; /* the code need refactoring but calculation is the same */
+				data->amps_visible = true;
+				data->svi_core_addr = F19H_M01H_SVI_TEL_PLANE0;
+				data->svi_soc_addr = F19H_M01H_SVI_TEL_PLANE1;
+				ccd_check = 8;
+				break;
+			}
 	}
 
 	for (i = 0; i < ccd_check; i++) {
@@ -652,6 +672,7 @@ static const struct pci_device_id zenpower_id_table[] = {
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_M30H_DF_F3) },
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_M60H_DF_F3) },
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_M70H_DF_F3) },
+	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_19H_DF_F3) },
 	{}
 };
 MODULE_DEVICE_TABLE(pci, zenpower_id_table);
